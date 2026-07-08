@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>TERRA — Optical Survey</title>
+<meta name="description" content="An interactive globe that pulls live population, economy, and country facts from the World Bank and countries.dev." />
+<link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <div class="brand">
+      <span class="mark">TERRA</span>
+      <span class="sub">optical survey · live data</span>
+    </div>
+    <div class="spacer"></div>
+    <div class="search">
+      <span class="glyph">⌕</span>
+      <input id="search" list="countries" placeholder="find a region…" autocomplete="off" spellcheck="false" />
+      <datalist id="countries"></datalist>
+    </div>
+    <div class="toggle" id="spin" title="Toggle rotation">
+      <span class="dot"></span><span>spin</span>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="globe"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+    <div class="hint">
+      <span><b>drag</b> rotate</span>
+      <span><b>scroll</b> zoom</span>
+      <span><b>click</b> survey a region</span>
+    </div>
+    <div class="maploader" id="maploader">
+      <div class="ring"></div>
+      <div>initialising surface geometry…</div>
+    </div>
+  </div>
+
+  <aside class="panel" id="panel">
+    <div id="readout">
+      <div class="eyebrow">standby</div>
+      <div class="idle">
+        <div class="big">Nothing selected.</div>
+        Rotate the sphere and click any landmass. TERRA queries the World Bank and
+        countries.dev in real time and returns current population, economic figures,
+        and a handful of facts — pulled live, not from a stored table.
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script src="./vendor/d3.min.js"></script>
+<script src="./data/data.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
