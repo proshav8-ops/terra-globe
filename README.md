@@ -20,7 +20,9 @@ no API keys, no backend.
   - Live ground-track positions from simplified **Keplerian** elements.
   - **Theoretical space envelopes** per country: Kármán cylinder, LEO/MEO/GEO shells.
   - **Spherical Voronoi jurisdiction** — which country centroid "owns" each subsatellite point.
-  - Panel explains boundary theory, math required, and a suggested **conjunction/debris** extension.
+  - **Conjunction screening** — pairwise miss distance d_miss, Gaussian P_c estimate, alert at 10⁻⁴.
+  - **Debris & chokepoints** — modelled fragments at collision altitudes + global shell density.
+  - **Auto-inferences** panel — geopolitical/SSA conclusions drawn from the snapshot.
 
 ## Run it
 
@@ -58,8 +60,10 @@ index.html           markup + script includes
 styles.css           the "optical instrument" theme
 app.js               globe rendering, interaction, surface data pipeline
 space.js             orbital model, jurisdiction math, space panel
+conjunction.js       miss distance, P_c, debris risk, hotspot rendering
 data/data.js         embedded world geometry (110m) + ISO 3166 code map
 data/satellites.js   curated spacecraft catalog (registry + orbital elements)
+data/debris.js       debris fragments + orbital chokepoint density table
 vendor/d3.min.js     vendored d3 v7 (no CDN dependency)
 .nojekyll            tell GitHub Pages to serve files as-is
 ```
@@ -75,7 +79,7 @@ vendor/d3.min.js     vendored d3 v7 (no CDN dependency)
 | **GEO slot math** | Clarke belt at 35,786 km; longitude allocation on the equator |
 | **Registry jurisdiction** | Outer Space Treaty — state owns registered objects, not orbital territory |
 
-**Suggested extension:** conjunction screening — propagate TLEs with SGP4, estimate miss distance and collision probability P_c (Alfano/Foster) for debris vs national assets.
+**Conjunction extension (live):** propagate Keplerian ECI positions, compute d_miss between all pairs, estimate P_c = exp(−d²/4σ²) with σ = 0.5 km. Flag critical (P_c ≥ 10⁻⁴ or d < 2 km). Red dashed lines on the globe mark hotspot pairs.
 
 Each surface data source degrades independently: if one is unreachable, the panel still shows whatever
 the other returned.

@@ -13,7 +13,8 @@
     LEO: "rgba(111,194,224,0.95)",
     MEO: "rgba(233,169,60,0.95)",
     GEO: "rgba(246,198,103,0.95)",
-    HEO: "rgba(200,140,255,0.95)"
+    HEO: "rgba(200,140,255,0.95)",
+    DEBRIS: "rgba(255,100,100,0.75)"
   };
 
   function deg2rad(d){ return d * Math.PI / 180; }
@@ -169,11 +170,12 @@
 
       const isOwned = selectedA3 && sat.ownerA3 === selectedA3;
       const isHover = hoveredSatId === sat.id;
-      const r = isHover ? 5 : (isOwned ? 4 : 2.5);
+      const isDebris = sat.debris || sat.regime === "DEBRIS";
+      const r = isHover ? 5 : (isDebris ? 2 : (isOwned ? 4 : 2.5));
 
       ctx.beginPath();
       ctx.arc(px, py, r, 0, Math.PI * 2);
-      ctx.fillStyle = isOwned ? "#f6c667" : (REGIME_COLOR[sat.regime] || "#6fc2e0");
+      ctx.fillStyle = isDebris ? REGIME_COLOR.DEBRIS : (isOwned ? "#f6c667" : (REGIME_COLOR[sat.regime] || "#6fc2e0"));
       if(isOwned || isHover){
         ctx.shadowColor = "rgba(246,198,103,0.8)";
         ctx.shadowBlur = 10;

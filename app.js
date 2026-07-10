@@ -22,7 +22,7 @@
 
   let W=0, H=0, DPR=Math.min(window.devicePixelRatio||1, 2);
   let features=[], selected=null, hovered=null, hoveredSat=null;
-  let surveyMode='surface', satellites=[], spaceT0=performance.now()/1000;
+  let surveyMode='surface', satellites=[], debris=[], chokepoints=[], spaceAnalysis=null, spaceT0=performance.now()/1000;
   let autoRotate=!reduce, animatingTo=null, dragging=false, reqToken=0, time=0;
 
   const projection = d3.geoOrthographic().precision(0.5).clipAngle(90);
@@ -118,7 +118,11 @@
 
     if(surveyMode==='space' && window.TerraSpace && satellites.length){
       const a3 = selected ? TerraSpace.getA3(selected, window.ISO, SPECIAL) : null;
-      TerraSpace.drawSpaceLayer(ctx, projection, W, H, satellites, features, a3, time - spaceT0, hoveredSat && hoveredSat.id);
+      const allCraft = satellites.concat(debris);
+      TerraSpace.drawSpaceLayer(ctx, projection, W, H, allCraft, features, a3, time - spaceT0, hoveredSat && hoveredSat.id);
+      if(spaceAnalysis && window.TerraConjunction){
+        TerraConjunction.drawHotspots(ctx, projection, W, H, spaceAnalysis.hotspots, TerraSpace.subsatellitePoint, time - spaceT0, projection.rotate());
+      }
     }
 
     ctx.beginPath(); ctx.arc(cx,cy,s,0,Math.PI*2);
@@ -217,7 +221,7 @@
     const r=canvas.getBoundingClientRect();
     const px=e.clientX-r.left, py=e.clientY-r.top;
     if(surveyMode==='space' && window.TerraSpace){
-      hoveredSat = TerraSpace.findSatAt(px, py, projection, W, H, satellites, time - spaceT0);
+      hoveredSat = TerraSpace.findSatAt(px, py, projection, W, H, satellites.concat(debris), time - spaceT0);
       if(hoveredSat){
         hovered=null;
         tooltip.textContent=hoveredSat.name+' · '+hoveredSat.regime;
@@ -528,15 +532,30 @@
       return;
     }
     panel.scrollTop=0;
-    const info = TerraSpace.analyzeCountry(feature, satellites, features, window.ISO, SPECIAL);
+    const elapsed = time - spaceT0;
+    const info = (window.TerraConjunction)
+      ? TerraConjunction.analyzeForCountry(feature, satellites, debris, features, window.ISO, SPECIAL, chokepoints, elapsed)
+      : TerraSpace.analyzeCountry(feature, satellites, features, window.ISO, SPECIAL);
+    spaceAnalysis = info;
     const env = info.envelope;
     const theory = TerraSpace.boundaryTheoryText();
-    const extra = TerraSpace.extraSuggestion();
     const math = TerraSpace.mathNeeded();
 
     const satRows = info.owned.length
       ? info.owned.map(s=>`<li><span class="reg">${esc(s.regime)}</span> ${esc(s.name)}<br><span class="alt">${s.alt_km.toLocaleString()} km${s.fleet?` · ~${s.fleet} craft`:''}</span></li>`).join('')
       : '<li>No registered assets in catalog (many smallsats are not listed).</li>';
+
+    const cjRows = (info.pairs && info.pairs.length)
+      ? info.pairs.map(p=>`<li><span class="pair risk-${p.level}">${esc(p.a.name)} ↔ ${esc(p.b.name)}</span><br><span class="meta">d_miss ${p.dMiss.toFixed(1)} km · P_c ${window.TerraConjunction ? TerraConjunction.fmtPc(p.pc) : '—'} · <span class="risk-${p.level}">${p.level}</span></span></li>`).join('')
+      : '<li>No elevated conjunction pairs in this snapshot.</li>';
+
+    const debrisRows = (info.debrisRisk && info.debrisRisk.length)
+      ? info.debrisRisk.slice(0, 4).map(d=>`<li><span class="risk-${d.level}">${esc(d.label)}</span> (${d.alt_km} km)<br><span class="meta">${d.debrisNear} modelled debris · ~${d.trackable_est.toLocaleString()} trackable · ${d.assetsNear} national asset(s)</span></li>`).join('')
+      : '';
+
+    const inferRows = (info.inferences && info.inferences.length)
+      ? info.inferences.map(t=>`<li>${esc(t)}</li>`).join('')
+      : '';
 
     readout.innerHTML=`
       <div class="eyebrow">space survey</div>
@@ -547,7 +566,7 @@
         <div class="cell"><div class="k">Registered</div><div class="v hi">${info.owned.length}</div></div>
         <div class="cell"><div class="k">Overhead now</div><div class="v">${info.overhead}</div></div>
         <div class="cell"><div class="k">Foreign overhead</div><div class="v">${info.foreignOverhead}</div></div>
-        <div class="cell"><div class="k">Abroad (owned)</div><div class="v">${info.abroad}</div></div>
+        <div class="cell"><div class="k">Hotspots</div><div class="v">${info.hotspots ? info.hotspots.length : 0}</div></div>
       </div>
 
       <div class="grid">
@@ -557,17 +576,26 @@
         <div class="cell"><div class="k">HEO</div><div class="v">${info.regimes.HEO}</div></div>
       </div>
 
+      ${inferRows ? `<div class="block"><h4>Inferences</h4><ul class="facts">${inferRows}</ul></div>` : ''}
+
       <div class="block">
-        <h4>Theoretical space envelope</h4>
-        <p>Surface area ~${env.surface_km2.toLocaleString()} km². Modelled vertical shells:
-        Kármán cylinder (0–${env.karman.ceiling_km} km), LEO shell (${env.leo.floor_km}–${env.leo.ceiling_km} km),
-        transfer/MEO (${env.meo.floor_km}–${env.meo.ceiling_km} km), Clarke belt (${env.geo.floor_km}–${env.geo.ceiling_km} km).
-        These are geometric aids — not legal borders.</p>
+        <h4>Conjunction screening</h4>
+        <ul class="cj-list">${cjRows}</ul>
+        <p style="margin-top:10px;font-size:12px;color:var(--txt-faint)">Red dashed lines on globe = critical/elevated pairs. Alert threshold P_c ≥ 10⁻⁴.</p>
       </div>
+
+      ${debrisRows ? `<div class="block"><h4>Debris & chokepoint risk</h4><ul class="facts">${debrisRows}</ul></div>` : ''}
 
       <div class="block">
         <h4>Registered assets</h4>
         <ul class="sat-list">${satRows}</ul>
+      </div>
+
+      <div class="block">
+        <h4>Theoretical space envelope</h4>
+        <p>Surface area ~${env.surface_km2.toLocaleString()} km². Modelled vertical shells:
+        Kármán cylinder (0–${env.karman.ceiling_km} km), LEO shell (${env.leo.floor_km}–${env.leo.ceiling_km} km),
+        transfer/MEO (${env.meo.floor_km}–${env.meo.ceiling_km} km), Clarke belt (${env.geo.floor_km}–${env.geo.ceiling_km} km).</p>
       </div>
 
       <div class="block">
@@ -576,17 +604,12 @@
       </div>
 
       <div class="block">
-        <h4>Also consider: ${esc(extra.title)}</h4>
-        <p>${esc(extra.body)}</p>
-      </div>
-
-      <div class="block">
         <h4>Math required</h4>
         <ul class="math-list">${math.map(m=>`<li><b>${esc(m.topic)}</b> — ${esc(m.detail)}</li>`).join('')}</ul>
       </div>
 
       <div class="asof">
-        <span class="src">◇ orbital model</span> · Keplerian ground tracks · spherical Voronoi jurisdiction
+        <span class="src">◇ conjunction model</span> · Keplerian ECI · σ=${window.TerraConjunction ? TerraConjunction.SIGMA_KM : '0.5'} km · live snapshot
       </div>`;
   }
 
@@ -595,6 +618,8 @@
     if(typeof d3==='undefined'){ maploader.innerHTML='<div>d3 failed to load</div>'; return; }
     if(!window.WORLD){ maploader.innerHTML='<div>geometry data missing</div>'; return; }
     satellites = window.SATELLITES || [];
+    debris = window.DEBRIS || [];
+    chokepoints = window.ORBITAL_CHOKEPOINTS || [];
     features = decodeTopo(window.WORLD,'countries').filter(f=>f.properties && f.properties.name);
     features.sort((a,b)=>a.properties.name.localeCompare(b.properties.name));
     datalist.innerHTML = features.map(f=>`<option value="${esc(f.properties.name)}">`).join('');
