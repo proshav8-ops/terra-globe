@@ -268,7 +268,7 @@
     // indicators in parallel (most-recent non-empty value)
     const keys=Object.keys(WB_CODES);
     const res=await Promise.all(keys.map(k=>
-      fetch(`${WB}/country/${a3}/indicator/${WB_CODES[k]}?format=json&mrnev=1&per_page=1`)
+      fetch(`${WB}/country/${a3}/indicator/${WB_CODES[k]}?format=json&mrv=5&per_page=5`)
         .then(r=>r.json()).catch(()=>null)));
     keys.forEach((k,i)=>{
       const v=wbLatest(res[i]); if(!v) return;
