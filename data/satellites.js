@@ -1,0 +1,35 @@
+/* Curated catalog of notable active spacecraft.
+   ownerA3 = state of registry (Outer Space Treaty).
+   Orbital elements are circular-orbit approximations for visualization. */
+window.SATELLITES = [
+  { id:"iss",     name:"International Space Station", ownerA3:"USA", regime:"LEO",  alt_km:420,  inc:51.6, raan:120, M0:0,   period_min:92.9 },
+  { id:"css",     name:"Tiangong space station",      ownerA3:"CHN", regime:"LEO",  alt_km:380,  inc:41.5, raan:200, M0:40,  period_min:91.6 },
+  { id:"hst",     name:"Hubble Space Telescope",      ownerA3:"USA", regime:"LEO",  alt_km:540,  inc:28.5, raan:80,  M0:110, period_min:95.4 },
+  { id:"starlink",name:"Starlink constellation",      ownerA3:"USA", regime:"LEO",  alt_km:550,  inc:53.0, raan:30,  M0:200, period_min:95.5, fleet:6000 },
+  { id:"oneweb",  name:"OneWeb constellation",        ownerA3:"GBR", regime:"LEO",  alt_km:1200, inc:87.4, raan:60,  M0:15,  period_min:109.8, fleet:630 },
+  { id:"gps",     name:"GPS III",                     ownerA3:"USA", regime:"MEO",  alt_km:20200,inc:55.0, raan:0,   M0:70,  period_min:718.0 },
+  { id:"galileo", name:"Galileo",                     ownerA3:"ITA", regime:"MEO",  alt_km:23222,inc:56.0, raan:45,  M0:130, period_min:844.3 },
+  { id:"beidou",  name:"BeiDou-3",                    ownerA3:"CHN", regime:"MEO",  alt_km:21528,inc:55.0, raan:160, M0:250, period_min:773.2 },
+  { id:"glonass", name:"GLONASS-K",                   ownerA3:"RUS", regime:"MEO",  alt_km:19130,inc:64.8, raan:280, M0:90,  period_min:675.7 },
+  { id:"irnss",   name:"NavIC",                       ownerA3:"IND", regime:"MEO",  alt_km:35786,inc:29.0, raan:55,  M0:300, period_min:1436.1 },
+  { id:"goes",    name:"GOES-East",                   ownerA3:"USA", regime:"GEO",  alt_km:35786,inc:0.2,  raan:0,   M0:-75, period_min:1436.1, lonFixed:-75.2 },
+  { id:"meteosat",name:"Meteosat-11",                 ownerA3:"FRA", regime:"GEO",  alt_km:35786,inc:0.1,  raan:0,   M0:0,   period_min:1436.1, lonFixed:0.0 },
+  { id:"himawari",name:"Himawari-9",                  ownerA3:"JPN", regime:"GEO",  alt_km:35786,inc:0.0,  raan:0,   M0:140, period_min:1436.1, lonFixed:140.7 },
+  { id:"insat",   name:"INSAT-3DR",                   ownerA3:"IND", regime:"GEO",  alt_km:35786,inc:0.1,  raan:0,   M0:74,  period_min:1436.1, lonFixed:74.0 },
+  { id:"yamal",   name:"Yamal-601",                   ownerA3:"RUS", regime:"GEO",  alt_km:35786,inc:0.2,  raan:0,   M0:49,  period_min:1436.1, lonFixed:49.0 },
+  { id:"ses",     name:"SES-17",                      ownerA3:"LUX", regime:"GEO",  alt_km:35786,inc:0.1,  raan:0,   M0:-67, period_min:1436.1, lonFixed:-67.0 },
+  { id:"sentinel",name:"Sentinel-2A",                 ownerA3:"ITA", regime:"LEO",  alt_km:786,  inc:98.5, raan:10,  M0:180, period_min:100.6 },
+  { id:"landsat", name:"Landsat 9",                   ownerA3:"USA", regime:"LEO",  alt_km:705,  inc:98.2, raan:250, M0:60,  period_min:98.9 },
+  { id:"terra",   name:"Terra (EOS AM-1)",            ownerA3:"USA", regime:"LEO",  alt_km:705,  inc:98.2, raan:170, M0:20,  period_min:98.9 },
+  { id:"gaofen",  name:"Gaofen-13",                   ownerA3:"CHN", regime:"GEO",  alt_km:35786,inc:0.1,  raan:0,   M0:110, period_min:1436.1, lonFixed:110.5 },
+  { id:"worldview",name:"WorldView-3",                ownerA3:"USA", regime:"LEO",  alt_km:617,  inc:97.9, raan:300, M0:45,  period_min:97.0 },
+  { id:"cartosat",name:"Cartosat-3",                  ownerA3:"IND", regime:"LEO",  alt_km:509,  inc:97.5, raan:90,  M0:160, period_min:94.7 },
+  { id:"kompsat", name:"KOMPSAT-6",                   ownerA3:"KOR", regime:"LEO",  alt_km:528,  inc:97.4, raan:210, M0:80,  period_min:95.2 },
+  { id:"mexsat",  name:"MEXSAT-3",                    ownerA3:"MEX", regime:"GEO",  alt_km:35786,inc:0.0,  raan:0,   M0:-113,period_min:1436.1, lonFixed:-113.0 },
+  { id:"nilesat", name:"Nilesat 301",                 ownerA3:"EGY", regime:"GEO",  alt_km:35786,inc:0.1,  raan:0,   M0:7,   period_min:1436.1, lonFixed:7.0 },
+  { id:"jcsat",   name:"JCSAT-17",                    ownerA3:"JPN", regime:"GEO",  alt_km:35786,inc:0.1,  raan:0,   M0:136, period_min:1436.1, lonFixed:136.0 },
+  { id:"telesat", name:"Telstar 19V",                 ownerA3:"CAN", regime:"GEO",  alt_km:35786,inc:0.1,  raan:0,   M0:-63, period_min:1436.1, lonFixed:-63.0 },
+  { id:"intelsat",name:"Intelsat 40e",                ownerA3:"USA", regime:"GEO",  alt_km:35786,inc:0.0,  raan:0,   M0:-91, period_min:1436.1, lonFixed:-91.0 },
+  { id:"swarm",   name:"Swarm Alpha",                 ownerA3:"SWE", regime:"LEO",  alt_km:460,  inc:87.4, raan:340, M0:220, period_min:93.5 },
+  { id:"molniya", name:"Molniya-1T",                  ownerA3:"RUS", regime:"HEO",  alt_km:39000,inc:63.4, raan:90,  M0:270, period_min:718.0 }
+];

@@ -10,13 +10,17 @@ no API keys, no backend.
 
 - **Globe** — d3 orthographic projection rendered on canvas. Drag to rotate, scroll/pinch
   to zoom, click a country to survey it, or use the search box to fly to one.
-- **Live data** on selection:
+- **Surface survey** (default) on selection:
   - **[World Bank Indicators API](https://datahelpdesk.worldbank.org/knowledgebase/articles/889392)**
     → GDP (nominal), GDP per capita, real GDP growth, population, capital, region, income group.
   - **[countries.dev](https://countries.dev)** → currency, languages, land area, neighbours,
     time zones, population density, flag.
-- Each source degrades independently: if one is unreachable, the panel still shows whatever
-  the other returned.
+- **Space survey** (toggle in header) — second model layered on the same globe:
+  - ~30 notable satellites with **state of registry** (Outer Space Treaty).
+  - Live ground-track positions from simplified **Keplerian** elements.
+  - **Theoretical space envelopes** per country: Kármán cylinder, LEO/MEO/GEO shells.
+  - **Spherical Voronoi jurisdiction** — which country centroid "owns" each subsatellite point.
+  - Panel explains boundary theory, math required, and a suggested **conjunction/debris** extension.
 
 ## Run it
 
@@ -50,13 +54,31 @@ pick `main` / `/ (root)`, save. The site publishes at
 ## Project layout
 
 ```
-index.html        markup + script includes
-styles.css        the "optical instrument" theme
-app.js            globe rendering, interaction, and the data pipeline
-data/data.js      embedded world geometry (110m) + ISO 3166 code map
-vendor/d3.min.js  vendored d3 v7 (no CDN dependency)
-.nojekyll         tell GitHub Pages to serve files as-is
+index.html           markup + script includes
+styles.css           the "optical instrument" theme
+app.js               globe rendering, interaction, surface data pipeline
+space.js             orbital model, jurisdiction math, space panel
+data/data.js         embedded world geometry (110m) + ISO 3166 code map
+data/satellites.js   curated spacecraft catalog (registry + orbital elements)
+vendor/d3.min.js     vendored d3 v7 (no CDN dependency)
+.nojekyll            tell GitHub Pages to serve files as-is
 ```
+
+## Space model — math & theory
+
+| Topic | Role in TERRA |
+|-------|----------------|
+| **Spherical geometry** | Great-circle distance, country centroids, Voronoi cells on S² |
+| **Keplerian orbits** | Elements (a, i, Ω, M); mean motion n = √(μ/a³); subsatellite tracks |
+| **Coordinate transforms** | ECI ↔ geodetic for ground projection (WGS-84) |
+| **Kármán envelope** | Vertical cylinder to ~100 km — physics convention, not law |
+| **GEO slot math** | Clarke belt at 35,786 km; longitude allocation on the equator |
+| **Registry jurisdiction** | Outer Space Treaty — state owns registered objects, not orbital territory |
+
+**Suggested extension:** conjunction screening — propagate TLEs with SGP4, estimate miss distance and collision probability P_c (Alfano/Foster) for debris vs national assets.
+
+Each surface data source degrades independently: if one is unreachable, the panel still shows whatever
+the other returned.
 
 ## Notes & limitations
 

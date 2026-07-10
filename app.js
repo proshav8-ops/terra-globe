@@ -17,9 +17,12 @@
   const searchEl = document.getElementById('search');
   const datalist = document.getElementById('countries');
   const spinBtn  = document.getElementById('spin');
+  const modeBtn  = document.getElementById('mode');
+  const modeLabel= document.getElementById('mode-label');
 
   let W=0, H=0, DPR=Math.min(window.devicePixelRatio||1, 2);
-  let features=[], selected=null, hovered=null;
+  let features=[], selected=null, hovered=null, hoveredSat=null;
+  let surveyMode='surface', satellites=[], spaceT0=performance.now()/1000;
   let autoRotate=!reduce, animatingTo=null, dragging=false, reqToken=0, time=0;
 
   const projection = d3.geoOrthographic().precision(0.5).clipAngle(90);
@@ -111,6 +114,11 @@
       ctx.beginPath(); path(selected);
       ctx.strokeStyle='#ffdfa6'; ctx.lineWidth=1.1; ctx.stroke();
       drawReticle(selected);
+    }
+
+    if(surveyMode==='space' && window.TerraSpace && satellites.length){
+      const a3 = selected ? TerraSpace.getA3(selected, window.ISO, SPECIAL) : null;
+      TerraSpace.drawSpaceLayer(ctx, projection, W, H, satellites, features, a3, time - spaceT0, hoveredSat && hoveredSat.id);
     }
 
     ctx.beginPath(); ctx.arc(cx,cy,s,0,Math.PI*2);
@@ -206,6 +214,20 @@
     return null;
   }
   function hover(e){
+    const r=canvas.getBoundingClientRect();
+    const px=e.clientX-r.left, py=e.clientY-r.top;
+    if(surveyMode==='space' && window.TerraSpace){
+      hoveredSat = TerraSpace.findSatAt(px, py, projection, W, H, satellites, time - spaceT0);
+      if(hoveredSat){
+        hovered=null;
+        tooltip.textContent=hoveredSat.name+' · '+hoveredSat.regime;
+        tooltip.style.left=px+'px';
+        tooltip.style.top=py+'px';
+        tooltip.classList.add('on'); canvas.style.cursor='pointer';
+        return;
+      }
+    }
+    hoveredSat=null;
     const f=locate(e.clientX,e.clientY); hovered=f;
     if(f){
       const r=stage.getBoundingClientRect();
@@ -220,7 +242,9 @@
 
   function select(f){
     selected=f; autoRotate=false; setSpin(false);
-    flyTo(d3.geoCentroid(f)); loadData(f);
+    flyTo(d3.geoCentroid(f));
+    if(surveyMode==='space') renderSpaceSurvey(f);
+    else loadData(f);
   }
   function flyTo(coord){
     if(reduce){ projection.rotate([-coord[0],-coord[1], projection.rotate()[2]]); return; }
@@ -230,6 +254,26 @@
 
   function setSpin(on){ autoRotate=on; spinBtn.classList.toggle('paused',!on); }
   spinBtn.addEventListener('click', ()=> setSpin(!autoRotate));
+
+  function setMode(mode){
+    surveyMode = mode;
+    modeBtn.classList.toggle('space-on', mode==='space');
+    modeLabel.textContent = mode;
+    const hint=document.querySelector('.hint');
+    if(hint){
+      hint.innerHTML = mode==='space'
+        ? '<span><b>drag</b> rotate</span><span><b>scroll</b> zoom</span><span><b>click</b> space jurisdiction</span>'
+        : '<span><b>drag</b> rotate</span><span><b>scroll</b> zoom</span><span><b>click</b> survey a region</span>';
+    }
+    if(!selected){
+      renderIdle();
+    } else if(mode==='space'){
+      renderSpaceSurvey(selected);
+    } else {
+      loadData(selected);
+    }
+  }
+  modeBtn.addEventListener('click', ()=> setMode(surveyMode==='surface' ? 'space' : 'surface'));
 
   searchEl.addEventListener('change', runSearch);
   searchEl.addEventListener('keydown', e=>{ if(e.key==='Enter') runSearch(); });
@@ -465,10 +509,92 @@
     if(b) b.addEventListener('click', ()=>{ if(selected) loadData(selected); });
   }
 
+  function renderIdle(){
+    panel.scrollTop=0;
+    const spaceNote = surveyMode==='space'
+      ? 'Space survey maps registered spacecraft, orbital shells, and theoretical jurisdiction envelopes. Click any country to inspect its space portfolio.'
+      : 'Rotate the sphere and click any landmass. TERRA queries the World Bank and countries.dev in real time — or switch to <b>space</b> for orbital jurisdiction.';
+    readout.innerHTML=`
+      <div class="eyebrow">standby</div>
+      <div class="idle">
+        <div class="big">Nothing selected.</div>
+        ${spaceNote}
+      </div>`;
+  }
+
+  function renderSpaceSurvey(feature){
+    if(!window.TerraSpace || !satellites.length){
+      renderError(feature.properties.name, 'space model not loaded');
+      return;
+    }
+    panel.scrollTop=0;
+    const info = TerraSpace.analyzeCountry(feature, satellites, features, window.ISO, SPECIAL);
+    const env = info.envelope;
+    const theory = TerraSpace.boundaryTheoryText();
+    const extra = TerraSpace.extraSuggestion();
+    const math = TerraSpace.mathNeeded();
+
+    const satRows = info.owned.length
+      ? info.owned.map(s=>`<li><span class="reg">${esc(s.regime)}</span> ${esc(s.name)}<br><span class="alt">${s.alt_km.toLocaleString()} km${s.fleet?` · ~${s.fleet} craft`:''}</span></li>`).join('')
+      : '<li>No registered assets in catalog (many smallsats are not listed).</li>';
+
+    readout.innerHTML=`
+      <div class="eyebrow">space survey</div>
+      <div class="country-name">${esc(info.name)}</div>
+      <div class="country-sub">registry ${info.a3||'—'} · GEO slot ~${info.slotLon}°</div>
+
+      <div class="grid">
+        <div class="cell"><div class="k">Registered</div><div class="v hi">${info.owned.length}</div></div>
+        <div class="cell"><div class="k">Overhead now</div><div class="v">${info.overhead}</div></div>
+        <div class="cell"><div class="k">Foreign overhead</div><div class="v">${info.foreignOverhead}</div></div>
+        <div class="cell"><div class="k">Abroad (owned)</div><div class="v">${info.abroad}</div></div>
+      </div>
+
+      <div class="grid">
+        <div class="cell"><div class="k">LEO</div><div class="v">${info.regimes.LEO}</div></div>
+        <div class="cell"><div class="k">MEO</div><div class="v">${info.regimes.MEO}</div></div>
+        <div class="cell"><div class="k">GEO</div><div class="v">${info.regimes.GEO}</div></div>
+        <div class="cell"><div class="k">HEO</div><div class="v">${info.regimes.HEO}</div></div>
+      </div>
+
+      <div class="block">
+        <h4>Theoretical space envelope</h4>
+        <p>Surface area ~${env.surface_km2.toLocaleString()} km². Modelled vertical shells:
+        Kármán cylinder (0–${env.karman.ceiling_km} km), LEO shell (${env.leo.floor_km}–${env.leo.ceiling_km} km),
+        transfer/MEO (${env.meo.floor_km}–${env.meo.ceiling_km} km), Clarke belt (${env.geo.floor_km}–${env.geo.ceiling_km} km).
+        These are geometric aids — not legal borders.</p>
+      </div>
+
+      <div class="block">
+        <h4>Registered assets</h4>
+        <ul class="sat-list">${satRows}</ul>
+      </div>
+
+      <div class="block">
+        <h4>Boundary theory</h4>
+        <ul class="facts">${theory.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
+      </div>
+
+      <div class="block">
+        <h4>Also consider: ${esc(extra.title)}</h4>
+        <p>${esc(extra.body)}</p>
+      </div>
+
+      <div class="block">
+        <h4>Math required</h4>
+        <ul class="math-list">${math.map(m=>`<li><b>${esc(m.topic)}</b> — ${esc(m.detail)}</li>`).join('')}</ul>
+      </div>
+
+      <div class="asof">
+        <span class="src">◇ orbital model</span> · Keplerian ground tracks · spherical Voronoi jurisdiction
+      </div>`;
+  }
+
   /* ---------- boot ---------- */
   function boot(){
     if(typeof d3==='undefined'){ maploader.innerHTML='<div>d3 failed to load</div>'; return; }
     if(!window.WORLD){ maploader.innerHTML='<div>geometry data missing</div>'; return; }
+    satellites = window.SATELLITES || [];
     features = decodeTopo(window.WORLD,'countries').filter(f=>f.properties && f.properties.name);
     features.sort((a,b)=>a.properties.name.localeCompare(b.properties.name));
     datalist.innerHTML = features.map(f=>`<option value="${esc(f.properties.name)}">`).join('');
